@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Model
+model User {
+  id            Int       @id @default(autoincrement())
+  OAuthProvider String
+  OAuthUserID   String    @unique
+  email         String?   @unique
+  username      String
+  avatar        String?
+  role          String    @default("USER")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  comments      Comment[]
+}
+
+// Book Model
+model Book {
+  id          Int       @id @default(autoincrement())
+  title       String
+  cn_title    String?
+  author      String
+  cn_author   String?
+  wordCount   Int
+  isCompleted Boolean   @default(false)
+  updatedAt   DateTime  @updatedAt
+  tags        String[]
+  cover       String?
+
+  // Relations
+  comments    Comment[]
+  chapters    Chapter[]
+}
+
+// Chapter Model
+model Chapter {
+  id            Int      @id @default(autoincrement())
+  bookId        Int
+  chapterNumber Int
+  chapterTitle  String
+  content       String
+
+  // Relations
+  book          Book     @relation(fields: [bookId], references: [id])
+}
+
+// Comment Model
+model Comment {
+  id             Int       @id @default(autoincrement())
+  bookId         Int
+  userId         Int
+  chapterNumber  Int?      // Nullable if comment_type = "BOOK"
+  content        String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  commentType    CommentType
+
+  // Relations
+  book           Book      @relation(fields: [bookId], references: [id])
+  user           User      @relation(fields: [userId], references: [id])
+}
+
+// Enum for Comment Type
+enum CommentType {
+  BOOK
+  CHAPTER
+}
