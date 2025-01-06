@@ -1,6 +1,8 @@
 import prisma from '../utils/db.js'
 import axios from 'axios'
-
+import streamifier from 'streamifier'
+import fs from 'fs'
+import FormData from 'form-data'
 function buildWhereClause ({ title, author, wordCount, tags }) {
   let whereClause = {}
   const conditions = [
@@ -46,28 +48,56 @@ function mapBookData (body, file) {
   if (body.isCompleted)
     data.isCompleted = body.isCompleted === 'true' ? true : false
   if (body.tags) data.tags = body.tags.split(',').map(tag => tag.trim())
+  if (body.description) data.description = body.description
   if (file) data.cover = file
 
   return data
 }
 
+// async function uploadImage (file) {
+//   try {
+//     const buffer = file.buffer
+//     const base64string = buffer.toString('base64')
+
+//     const formData = new FormData()
+//     formData.append('image', base64string)
+
+//     const apiKey = process.env.IMGBB_API_KEY
+//     const url = `https://api.imgbb.com/1/upload?key=${apiKey}`
+//     const response = await axios.post(url, formData)
+
+//     if (response.data.success) {
+//       return response.data.data.url
+//     } else {
+//       throw new Error('Image upload failed')
+//     }
+//   } catch (error) {
+//     console.error('Image upload error:', error.message)
+//     throw new Error('Image upload failed')
+//   }
+// }
+
 async function uploadImage (file) {
   try {
-    const buffer = file.buffer
-    const base64string = buffer.toString('base64')
-
     const formData = new FormData()
-    formData.append('image', base64string)
 
-    const apiKey = process.env.IMGBB_API_KEY
-    const url = `https://api.imgbb.com/1/upload?key=${apiKey}`
-    const response = await axios.post(url, formData)
+    formData.append('file', fs.createReadStream(file.path))
+    formData.append('apiKey', process.env.BEEIMG_API_KEY)
+    const headers = formData.getHeaders()
 
-    if (response.data.success) {
-      return response.data.data.url
-    } else {
-      throw new Error('Image upload failed')
-    }
+    const response = await axios.post(
+      'https://beeimg.com/api/upload/file/text/',
+      formData,
+      { headers }
+    )
+
+    fs.unlink(file.path, err => {
+      if (err) {
+        console.error('Error deleting file:', err.message)
+      }
+    })
+
+    return response.data
   } catch (error) {
     console.error('Image upload error:', error.message)
     throw new Error('Image upload failed')
@@ -85,7 +115,7 @@ export async function getBooks (req, res) {
       where: whereClause,
       take: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit),
-      orderBy: { id: 'desc' }
+      orderBy: { updatedAt: 'desc' }
     })
 
     const pagination = {
@@ -129,8 +159,7 @@ export async function getBookById (req, res) {
 
     if (!book) {
       return res.status(404).json({
-        message: 'Book not found',
-        book: {}
+        message: 'Book not found'
       })
     }
 
@@ -147,12 +176,12 @@ export async function getBookById (req, res) {
 }
 
 export async function createBook (req, res) {
-  const { title, author, wordCount, tags } = req.body
+  const { title, author, description, wordCount, tags } = req.body
 
-  if (!title || !author || !wordCount || !tags) {
-    return res
-      .status(400)
-      .json({ message: 'title, author, wordCount, tags cannot be empty' })
+  if (!title || !author || !description || !wordCount || !tags) {
+    return res.status(400).json({
+      message: 'title, author, description, wordCount, tags cannot be empty'
+    })
   }
 
   try {

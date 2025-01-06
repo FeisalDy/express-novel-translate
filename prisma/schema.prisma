@@ -21,6 +21,7 @@ model User {
   role          String    @default("USER")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  refreshToken  String?
 
   // Relations
   comments      Comment[]
@@ -33,6 +34,7 @@ model Book {
   cn_title    String?
   author      String
   cn_author   String?
+  description String    @default("Definition of Descriptive Text. Descriptive Text is a text which says what a person or a thing is like. Its purpose is to describe and reveal a particular person, place, or thing.")
   wordCount   Int
   isCompleted Boolean   @default(false)
   updatedAt   DateTime  @updatedAt
@@ -53,7 +55,11 @@ model Chapter {
   content       String
 
   // Relations
-  book          Book     @relation(fields: [bookId], references: [id])
+  book          Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  comments      Comment[] @relation("ChapterComments") 
+
+  @@unique([bookId, chapterNumber]) // Add this line
+
 }
 
 // Comment Model
@@ -68,8 +74,11 @@ model Comment {
   commentType    CommentType
 
   // Relations
-  book           Book      @relation(fields: [bookId], references: [id])
+  book           Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
   user           User      @relation(fields: [userId], references: [id])
+  chapter        Chapter?  @relation("ChapterComments", fields: [bookId, chapterNumber], references: [bookId, chapterNumber], onDelete: Cascade) 
+
+
 }
 
 // Enum for Comment Type

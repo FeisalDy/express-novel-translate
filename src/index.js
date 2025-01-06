@@ -2,13 +2,14 @@ import express from 'express'
 import dotenv from 'dotenv'
 import router from './routes/index.js'
 import cors from 'cors'
-
+import { sessionMiddleware } from './middleware/sessionMiddleware.js'
 dotenv.config()
 const app = express()
 
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use(sessionMiddleware)
 
 app.use(router)
 
@@ -19,5 +20,5 @@ app.listen(PORT, () => {
 })
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  return res.send(req.session)
 })

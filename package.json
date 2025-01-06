@@ -21,13 +21,18 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.0.1",
+    "@types/streamifier": "^0.1.2",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "form-data": "^4.0.1",
     "imgbb-uploader": "^1.5.1",
     "multer": "^1.4.5-lts.1",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "openid-client": "^6.1.7",
+    "streamifier": "^0.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
