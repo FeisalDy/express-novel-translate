@@ -29,11 +29,17 @@ async function parseChaptersFromFile (filePath, bookId) {
   let currentTitle = null
   let currentContent = []
 
-  const chapterRegex = /^第\d+节/
+  //   const chapterRegex = /^第\d+节/
+  //   const chapterRegex = /^第\d+章/ // Match chapter titles start with '第章'
+  //   const chapterRegex = /第\d+章/ // Match chapter titles like '第1章'
+  const chapterRegex = /第[一二三四五六七八九十百千零\d]+章/ // Match chapter titles like '第一章' not just number but also char
+  //   const chapterRegex = /^(\d+)\.(.*?)(?:\.(.*))?$/ // Regex to match chapter titles like '1.苏醒'
 
   lines.forEach(line => {
-    // if (chapterRegex.test(line.trim())) {
-    if (line.startsWith('第') && line.includes('章')) {
+    line = line.replace(/\0/g, '') // Remove all null characters
+
+    if (chapterRegex.test(line.trim())) {
+      // if (line.startsWith('第') && line.includes('章')) {
       if (currentTitle) {
         chapters.push({
           bookId: parseInt(bookId, 10),
@@ -153,8 +159,6 @@ export async function createChapter (req, res) {
     if (file) {
       const filePath = path.resolve(file.path)
       const chapters = await parseChaptersFromFile(filePath, bookId)
-
-      deleteFile(filePath)
 
       const createdChapters = await prisma.chapter.createMany({
         data: chapters

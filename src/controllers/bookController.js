@@ -3,6 +3,7 @@ import axios from 'axios'
 import streamifier from 'streamifier'
 import fs from 'fs'
 import FormData from 'form-data'
+
 function buildWhereClause ({ title, author, wordCount, tags }) {
   let whereClause = {}
   const conditions = [
@@ -47,7 +48,16 @@ function mapBookData (body, file) {
   if (body.wordCount) data.wordCount = parseInt(body.wordCount, 10)
   if (body.isCompleted)
     data.isCompleted = body.isCompleted === 'true' ? true : false
-  if (body.tags) data.tags = body.tags.split(',').map(tag => tag.trim())
+  //handle if body tags is just empty string or array
+  if (body.tags) {
+    if (Array.isArray(body.tags)) {
+      data.tags = body.tags
+    } else if (body.tags === '') {
+      data.tags = []
+    } else {
+      data.tags = body.tags.split(',')
+    }
+  }
   if (body.description) data.description = body.description
   if (file) data.cover = file
 
@@ -178,10 +188,17 @@ export async function getBookById (req, res) {
 export async function createBook (req, res) {
   const { title, author, description, wordCount, tags } = req.body
 
-  if (!title || !author || !description || !wordCount || !tags) {
+  if (!title || !author || !description) {
     return res.status(400).json({
-      message: 'title, author, description, wordCount, tags cannot be empty'
+      message: 'title, author, description, cannot be empty'
     })
+  }
+
+  if (!wordCount) {
+    req.body.wordCount = 0
+  }
+  if (!tags) {
+    req.body.tags = []
   }
 
   try {
@@ -197,6 +214,7 @@ export async function createBook (req, res) {
       data: bookData
     })
 
+    console.log('book', book)
     return res.status(201).json({
       message: 'Create Book Success',
       data: book

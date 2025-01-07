@@ -35,10 +35,10 @@ model Book {
   author      String
   cn_author   String?
   description String    @default("Definition of Descriptive Text. Descriptive Text is a text which says what a person or a thing is like. Its purpose is to describe and reveal a particular person, place, or thing.")
-  wordCount   Int
+  wordCount   Int       @default(0)
   isCompleted Boolean   @default(false)
   updatedAt   DateTime  @updatedAt
-  tags        String[]
+  tags        String[]  @default([])
   cover       String?
 
   // Relations
