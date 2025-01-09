@@ -4,35 +4,69 @@ import streamifier from 'streamifier'
 import fs from 'fs'
 import FormData from 'form-data'
 
-function buildWhereClause ({ title, author, wordCount, tags }) {
-  let whereClause = {}
-  const conditions = [
-    { field: 'title', value: title },
-    { field: 'cn_title', value: title },
-    { field: 'author', value: author },
-    { field: 'cn_author', value: author }
-  ]
+// function buildWhereClause ({ title, author, wordCount, tags }) {
+//   let whereClause = {}
+//   const conditions = [
+//     { field: 'title', value: title },
+//     { field: 'cn_title', value: title },
+//     { field: 'author', value: author },
+//     { field: 'cn_author', value: author }
+//   ]
 
-  for (const { field, value } of conditions) {
-    if (value) {
-      whereClause.OR = whereClause.OR || []
-      whereClause.OR.push({
+//   for (const { field, value } of conditions) {
+//     if (value) {
+//       whereClause.OR = whereClause.OR || []
+//       whereClause.OR.push({
+//         [field]: {
+//           contains: value,
+//           mode: 'insensitive'
+//         }
+//       })
+//     }
+//   }
+
+//   if (wordCount) {
+//     whereClause.wordCount = parseInt(wordCount)
+//   }
+
+//   if (tags) {
+//     whereClause.tags = {
+//       hasSome: tags.split(',')
+//     }
+//   }
+
+//   return whereClause
+// }
+
+function buildWhereClause ({ keyword, type, wordCount, tags }) {
+  let whereClause = {}
+
+  const searchableFields = {
+    title: ['title', 'cn_title'],
+    author: ['author', 'cn_author'],
+    tags: ['tags']
+  }
+
+  // Handle keyword-based search
+  if (keyword && type && searchableFields[type]) {
+    if (type === 'tags') {
+      const keywords = keyword.split(',').map(k => k.trim())
+      whereClause.tags = {
+        hasSome: keywords
+      }
+    } else {
+      whereClause.OR = searchableFields[type].map(field => ({
         [field]: {
-          contains: value,
+          contains: keyword,
           mode: 'insensitive'
         }
-      })
+      }))
     }
   }
 
+  // Add additional filters
   if (wordCount) {
     whereClause.wordCount = parseInt(wordCount)
-  }
-
-  if (tags) {
-    whereClause.tags = {
-      hasSome: tags.split(',')
-    }
   }
 
   return whereClause
@@ -64,29 +98,6 @@ function mapBookData (body, file) {
   return data
 }
 
-// async function uploadImage (file) {
-//   try {
-//     const buffer = file.buffer
-//     const base64string = buffer.toString('base64')
-
-//     const formData = new FormData()
-//     formData.append('image', base64string)
-
-//     const apiKey = process.env.IMGBB_API_KEY
-//     const url = `https://api.imgbb.com/1/upload?key=${apiKey}`
-//     const response = await axios.post(url, formData)
-
-//     if (response.data.success) {
-//       return response.data.data.url
-//     } else {
-//       throw new Error('Image upload failed')
-//     }
-//   } catch (error) {
-//     console.error('Image upload error:', error.message)
-//     throw new Error('Image upload failed')
-//   }
-// }
-
 async function uploadImage (file) {
   try {
     const formData = new FormData()
@@ -115,10 +126,11 @@ async function uploadImage (file) {
 }
 
 export async function getBooks (req, res) {
-  const { page = 1, limit = 10, title, author, wordCount, tags } = req.query
+  //   const { page = 1, limit = 10, title, author, wordCount, tags } = req.query
+  const { page = 1, limit = 10, keyword, type, wordCount } = req.query
 
   try {
-    const whereClause = buildWhereClause({ title, author, wordCount, tags })
+    const whereClause = buildWhereClause({ keyword, type, wordCount })
 
     const totalBooks = await prisma.book.count({ where: whereClause })
     const books = await prisma.book.findMany({

@@ -20,26 +20,28 @@ function mapChapterData (body) {
  * Reads and parses the content of the file into chapters.
  * @param {string} filePath - Path to the uploaded file.
  * @param {number} bookId - Book ID to associate with each chapter.
+ * @param {string} regex - Regular expression pattern to match chapter titles.
  * @returns {Promise<Array>} - Array of chapter objects with title and content.
  */
-async function parseChaptersFromFile (filePath, bookId) {
+async function parseChaptersFromFile (filePath, bookId, regex) {
   const content = fs.readFileSync(filePath, 'utf-8')
   const lines = content.split('\n')
   const chapters = []
   let currentTitle = null
   let currentContent = []
 
-  //   const chapterRegex = /^第\d+节/
-  //   const chapterRegex = /^第\d+章/ // Match chapter titles start with '第章'
-  //   const chapterRegex = /第\d+章/ // Match chapter titles like '第1章'
-  const chapterRegex = /第[一二三四五六七八九十百千零\d]+章/ // Match chapter titles like '第一章' not just number but also char
-  //   const chapterRegex = /^(\d+)\.(.*?)(?:\.(.*))?$/ // Regex to match chapter titles like '1.苏醒'
+  //   const chapterRegex = /第[一二三四五六七八九十百千零\d]+章/
+  //   const chapterRegex = regex
+  const chapterRegex =
+    typeof regex === 'string'
+      ? new RegExp(regex.replace(/^\/|\/$/g, '')) // Remove leading and trailing slashes
+      : regex
 
+  console.log(chapterRegex)
   lines.forEach(line => {
-    line = line.replace(/\0/g, '') // Remove all null characters
+    line = line.replace(/\0/g, '')
 
     if (chapterRegex.test(line.trim())) {
-      // if (line.startsWith('第') && line.includes('章')) {
       if (currentTitle) {
         chapters.push({
           bookId: parseInt(bookId, 10),
@@ -140,7 +142,7 @@ export async function getChapterByIdOrBookIdAndChapterNumber (req, res) {
 }
 
 export async function createChapter (req, res) {
-  const { bookId, chapterNumber, chapterTitle, content } = req.body
+  const { bookId, chapterNumber, chapterTitle, content, regex } = req.body
   const file = req.file
 
   if (file && content) {
@@ -155,10 +157,16 @@ export async function createChapter (req, res) {
     })
   }
 
+  if (!regex) {
+    return res.status(400).json({
+      message: 'Please provide a regex pattern to parse chapters from the file.'
+    })
+  }
+
   try {
     if (file) {
       const filePath = path.resolve(file.path)
-      const chapters = await parseChaptersFromFile(filePath, bookId)
+      const chapters = await parseChaptersFromFile(filePath, bookId, regex)
 
       const createdChapters = await prisma.chapter.createMany({
         data: chapters
