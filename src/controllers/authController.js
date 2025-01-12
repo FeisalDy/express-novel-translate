@@ -113,7 +113,6 @@ export async function googleCallback (req, res) {
 
     const tokens = await fetchTokens(config, currentUrl, state, codeVerifier)
     const { access_token, id_token } = tokens
-    console.log('tokens:', tokens)
 
     const claims = tokens.claims()
     const { sub } = claims
@@ -122,12 +121,12 @@ export async function googleCallback (req, res) {
 
     const { name, email, picture } = userinfo
 
-    const user = await findOrCreateUser({ sub, email, name, picture })
+    await findOrCreateUser({ sub, email, name, picture })
 
     req.session.userinfo = userinfo
 
-    // return res.json({ message: 'Google callback successful', userinfo: user })
-    return res.redirect('/')
+    // return res.redirect('/')
+    return res.json({ message: 'Login successful', userinfo })
   } catch (error) {
     console.error('Error in googleCallback:', error)
     return res

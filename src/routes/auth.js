@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { googleAuth, googleCallback } from '../controllers/authController.js'
 import {
-  isAuthenticated,
-  refreshAccessToken
+  isAuthenticated
+  //   refreshAccessToken
 } from '../middleware/authMiddleware.js'
 
 const router = Router()

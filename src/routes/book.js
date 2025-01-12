@@ -7,6 +7,7 @@ import {
   deleteBookById
 } from '../controllers/bookController.js'
 import multer from 'multer'
+import { isAuthenticated } from '../middleware/authMiddleware.js'
 
 // const storage = multer.memoryStorage()
 // const upload = multer({ storage: storage })
@@ -24,6 +25,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage })
 
 const router = Router()
+
+router.use((req, res, next) => {
+  if (req.method !== 'GET') {
+    return isAuthenticated(req, res, next)
+  }
+  //   isAuthenticated(req, res, next)
+  next()
+})
 
 router.get('/books', getBooks)
 router.get('/books/:id', getBookById)
